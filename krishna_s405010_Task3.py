@@ -138,7 +138,7 @@ t_statistic, p_value = stats.ttest_ind(
     forward_assists, midfielder_assists, equal_var=False
 )
 
-# 95% CI for the difference in means (Welch-Satterthwaite)
+#95% CI for Mean Difference
 forward_mean, midfielder_mean = forward_assists.mean(), midfielder_assists.mean()
 forward_var, midfielder_var = forward_assists.var(ddof=1), midfielder_assists.var(ddof=1)
 mean_difference = forward_mean - midfielder_mean

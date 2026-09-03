@@ -5,43 +5,41 @@ import numpy as np
 from scipy import stats
 import matplotlib.pyplot as plt
 
-url = "https://raw.githubusercontent.com/Bustami/efi-fifa-data-wc-2026/refs/heads/master/data/wc2026_efi.csv"
-player_match_df = pd.read_csv(url)
+player_df_raw = pd.read_csv("player_stats.csv")
 
-print("Dataset loaded. Shape:", player_match_df.shape)
-display(player_match_df.head())
+print("Dataset loaded. Shape:", player_df_raw.shape)
+display(player_df_raw.head())
 
 # 2. DATA INSPECTION
-print("Unique players:", player_match_df["player_id"].nunique())
-print("Unique matches:", player_match_df["match_id"].nunique())
-print("Rows (player-match records):", len(player_match_df))
+print("Unique players:", player_df_raw["player_id"].nunique())
+print("Rows (player-level records):", len(player_df_raw))
 
-print("\nPosition categories:")
-print(player_match_df["position"].value_counts())
+print("\nPosition categories (raw codes):")
+print(player_df_raw["position"].value_counts())
 
 print("\nMissing values in key columns:")
-print(player_match_df[["player_name", "team_name", "position",
-                        "goals", "assists"]].isnull().sum())
+print(player_df_raw[["player_name", "team_id", "position",
+                      "goals", "assists"]].isnull().sum())
 
-# 3. DATA CLEANING & AGGREGATION TO PLAYER LEVEL
+print("\nDuplicate player_id:", player_df_raw["player_id"].duplicated().sum())
 
-player_df = (
-    player_match_df
-    .groupby(["player_id", "player_name", "team_name", "position"],
-              as_index=False)
-    .agg(
-        goals=("goals", "sum"),
-        assists=("assists", "sum"),
-        matches_played=("match_id", "nunique")
-    )
-)
+# 3. DATA CLEANING & STANDARDISATION
+
+position_map = {
+    "FWD": "Forward",
+    "MID": "Midfielder",
+    "DEF": "Defender",
+    "GK": "Goalkeeper",
+}
+player_df = player_df_raw.copy()
+player_df["position"] = player_df["position"].map(position_map)
+
+player_df["goals"] = pd.to_numeric(player_df["goals"], errors="coerce")
+player_df["assists"] = pd.to_numeric(player_df["assists"], errors="coerce")
 
 print("Player-level dataset shape:", player_df.shape)
 print("\nPosition distribution (all players):")
 print(player_df["position"].value_counts())
-
-print("\nDuplicate player_id after aggregation:",
-      player_df["player_id"].duplicated().sum())
 
 # 4. FILTERING — INCLUSION / EXCLUSION CRITERIA
 
@@ -60,7 +58,6 @@ print(analysis_df["position"].value_counts())
 display(analysis_df.head(10))
 
 # 5. DATA PREPARATION AND SAMPLING
-
 n_forward = (analysis_df["position"] == "Forward").sum()
 n_midfielder = (analysis_df["position"] == "Midfielder").sum()
 total_n = len(analysis_df)
@@ -138,7 +135,7 @@ t_statistic, p_value = stats.ttest_ind(
     forward_assists, midfielder_assists, equal_var=False
 )
 
-#95% CI for Mean Difference
+# 95% CI for Mean Difference
 forward_mean, midfielder_mean = forward_assists.mean(), midfielder_assists.mean()
 forward_var, midfielder_var = forward_assists.var(ddof=1), midfielder_assists.var(ddof=1)
 mean_difference = forward_mean - midfielder_mean
@@ -169,11 +166,11 @@ else:
     print("Fail to reject H0 — insufficient statistical evidence of a "
           "difference in mean assists between forwards and midfielders.")
 
-# Effect size (Cohen's d) for context alongside the p-value
+
 pooled_sd = np.sqrt(((n_forward - 1) * forward_var +
                       (n_midfielder - 1) * midfielder_var) /
                      (n_forward + n_midfielder - 2))
 cohens_d = mean_difference / pooled_sd
-print(f"\nCohen's d (effect size): {cohens_d:.4f}  (small effect)")
+print(f"\nCohen's d (effect size): {cohens_d:.4f}")
 
 

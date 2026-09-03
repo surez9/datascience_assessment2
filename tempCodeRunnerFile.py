@@ -1,0 +1,10 @@
+plt.figure(figsize=(7, 5))
+plt.scatter(pred22, residuals22)
+plt.axhline(0)
+plt.xlabel("Predicted team goals")
+plt.ylabel("Residual")
+plt.title("Linear Regression 2.2: Residual Plot")
+plt.tight_layout()
+plt.show()
+
+print("Residual mean:", round(residuals22.mean(), 4))
